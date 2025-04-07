@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // !!! IMPORTANT: Update this URL to your Render backend URL when deployed !!!
-    const API_BASE_URL = 'https://your-render-backend-url.onrender.com';
+    const API_BASE_URL = 'https://legislative-ai-reader-backend.onrender.com';
 
     // Store references to elements we'll need later
     const summaryContent = document.getElementById('summary-content');
