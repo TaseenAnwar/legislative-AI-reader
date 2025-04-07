@@ -359,3 +359,18 @@ footer {
         gap: 1rem;
     }
 }
+
+/* Disclaimer styling */
+.disclaimer {
+    background-color: #f8f9fa;
+    border-left: 3px solid #e74c3c;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.disclaimer p {
+    color: #555;
+    font-size: 0.9rem;
+    margin: 0;
+}
