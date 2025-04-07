@@ -1,18 +1,29 @@
 document.addEventListener('DOMContentLoaded', function() {
     // !!! IMPORTANT: Update this URL to your Render backend URL when deployed !!!
     const API_BASE_URL = 'https://legislative-ai-reader-backend.onrender.com';
+    console.log("Script initialized. API URL:", API_BASE_URL);
 
     // Store references to elements we'll need later
     const summaryContent = document.getElementById('summary-content');
     const searchContent = document.getElementById('search-content');
     
     // Tab Switching Functionality
+    console.log("Setting up tab functionality");
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
+    // Debug the tab elements
+    console.log("Found tab buttons:", tabButtons.length);
+    console.log("Found tab contents:", tabContents.length);
+
+    // Add click event listeners to tab buttons
     tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            console.log('Tab clicked:', button.getAttribute('data-tab'));
+        const tabId = button.getAttribute('data-tab');
+        console.log(`Setting up listener for tab: ${tabId}`);
+        
+        button.onclick = function(e) {
+            e.preventDefault();
+            console.log('Tab clicked:', tabId);
             
             // Remove active class from all tabs
             tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -20,14 +31,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Add active class to current tab
             button.classList.add('active');
-            const tabId = button.getAttribute('data-tab');
             const tabContent = document.getElementById(tabId);
             if (tabContent) {
                 tabContent.classList.add('active');
+                console.log(`Activated tab: ${tabId}`);
             } else {
                 console.error('Tab content not found:', tabId);
             }
-        });
+        };
     });
 
     // File Upload Display
@@ -53,16 +64,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const summarizerForm = document.getElementById('summarizer-form');
     
     if (summarizerForm) {
+        console.log('Summarizer form found, setting up event listener');
         const summarizerLoadingIndicator = document.querySelector('#summarizer .loading-indicator');
         const summaryResults = document.getElementById('summary-results');
 
-        summarizerForm.addEventListener('submit', async function(e) {
+        summarizerForm.onsubmit = async function(e) {
             e.preventDefault();
             console.log('Summarizer form submitted');
             
             const fileInput = document.getElementById('bill-pdf');
             if (!fileInput.files || !fileInput.files[0]) {
                 alert('Please select a PDF file');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            console.log('Selected file:', file.name, 'Size:', file.size, 'Type:', file.type);
+            
+            // Validate file type
+            if (file.type !== 'application/pdf') {
+                alert('Only PDF files are allowed');
                 return;
             }
 
@@ -73,21 +94,29 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 // Create FormData object for file upload
                 const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
+                formData.append('file', file);
 
-                console.log('Sending file to server...');
+                console.log('Sending file to server at:', `${API_BASE_URL}/api/summarize`);
                 
-                // Send request to server
+                // Send request to server with explicit content type omitted to let browser set it properly with boundary
                 const response = await fetch(`${API_BASE_URL}/api/summarize`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    // Don't set Content-Type header, let the browser set it with proper boundary
+                    // credentials: 'include' // Include if your server requires cookies
                 });
 
                 console.log('Response received:', response.status);
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Server responded with an error');
+                    let errorMessage = 'Server responded with an error';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        console.error('Could not parse error response:', e);
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const data = await response.json();
@@ -107,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 summarizerLoadingIndicator.classList.add('hidden');
                 summarizerForm.classList.remove('hidden');
             }
-        });
+        };
     } else {
         console.error('Summarizer form not found');
     }
@@ -116,10 +145,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const searcherForm = document.getElementById('searcher-form');
     
     if (searcherForm) {
+        console.log('Searcher form found, setting up event listener');
         const searcherLoadingIndicator = document.querySelector('#searcher .loading-indicator');
         const searchResults = document.getElementById('search-results');
 
-        searcherForm.addEventListener('submit', async function(e) {
+        searcherForm.onsubmit = async function(e) {
             e.preventDefault();
             console.log('Searcher form submitted');
             
@@ -128,6 +158,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const billState = document.getElementById('bill-state').value;
             const billYear = document.getElementById('bill-year').value;
             const additionalInfo = document.getElementById('additional-info').value;
+
+            console.log('Search parameters:', {
+                billName,
+                billNumber,
+                billState,
+                billYear,
+                additionalInfo
+            });
 
             if (!billState) {
                 alert('Please select a state or federal jurisdiction');
@@ -144,13 +182,14 @@ document.addEventListener('DOMContentLoaded', function() {
             searcherLoadingIndicator.classList.remove('hidden');
 
             try {
-                console.log('Sending search request to server...');
+                console.log('Sending search request to server at:', `${API_BASE_URL}/api/search`);
                 
                 // Send request to server
                 const response = await fetch(`${API_BASE_URL}/api/search`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
                         billName,
@@ -164,8 +203,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Response received:', response.status);
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Server responded with an error');
+                    let errorMessage = 'Server responded with an error';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        console.error('Could not parse error response:', e);
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const data = await response.json();
@@ -185,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 searcherLoadingIndicator.classList.add('hidden');
                 searcherForm.classList.remove('hidden');
             }
-        });
+        };
     } else {
         console.error('Searcher form not found');
     }
@@ -193,21 +238,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // "Back" button functionality
     const backToSummarizerBtn = document.getElementById('back-to-summarizer');
     if (backToSummarizerBtn) {
-        backToSummarizerBtn.addEventListener('click', function() {
+        console.log('Back to summarizer button found');
+        backToSummarizerBtn.onclick = function() {
+            console.log('Back to summarizer clicked');
             document.getElementById('summary-results').classList.add('hidden');
             document.getElementById('summarizer-form').classList.remove('hidden');
             document.getElementById('bill-pdf').value = '';
             document.getElementById('file-name-display').textContent = '';
-        });
+        };
+    } else {
+        console.error('Back to summarizer button not found');
     }
 
     const backToSearcherBtn = document.getElementById('back-to-searcher');
     if (backToSearcherBtn) {
-        backToSearcherBtn.addEventListener('click', function() {
+        console.log('Back to searcher button found');
+        backToSearcherBtn.onclick = function() {
+            console.log('Back to searcher clicked');
             document.getElementById('search-results').classList.add('hidden');
             document.getElementById('searcher-form').classList.remove('hidden');
-        });
+        };
+    } else {
+        console.error('Back to searcher button not found');
     }
+    
+    // Add debug message to confirm script loaded completely
+    console.log('Legislative AI Tool script initialization complete');
 
     // Function to safely get a value from a potentially nested object
     function safeGet(obj, keys, defaultValue = 'Not specified') {
