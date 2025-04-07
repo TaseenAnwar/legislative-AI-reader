@@ -1,4 +1,7 @@
-const express = require('express');
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -14,11 +17,6 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 10000;
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
 // CORS setup - Allow frontend to communicate with backend
 const allowedOrigins = [
   // Local development
@@ -27,14 +25,19 @@ const allowedOrigins = [
   'http://localhost:5000',
   'http://127.0.0.1:5000',
   // GitHub Pages (update with your actual GitHub Pages URL)
-  process.env.FRONTEND_URL || 'https://your-username.github.io/legislative-AI-reader'
+  process.env.FRONTEND_URL || 'https://your-username.github.io',
+  'https://your-username.github.io'
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
+    
+    // Check if the origin starts with GitHub Pages domain
+    const isGitHubPages = origin && origin.startsWith('https://') && origin.includes('.github.io');
+    
+    if (allowedOrigins.indexOf(origin) === -1 && !isGitHubPages) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
