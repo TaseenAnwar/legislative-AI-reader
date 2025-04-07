@@ -1,7 +1,4 @@
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});const express = require('express');
+const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -16,6 +13,11 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 const port = process.env.PORT || 10000;
+
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // CORS setup - Allow frontend to communicate with backend
 const allowedOrigins = [
